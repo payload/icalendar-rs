@@ -14,12 +14,14 @@ readme = "README.md"
 
 include = [
   "Cargo.toml",
+  "README.md",
   "src/*.rs",
 ]
 
 
 [dependencies]
 chrono = "0.4"
+nom = "2.1.0"
 #error-chain = "*"
 #vobject = {path="../hub/vobject"}
 

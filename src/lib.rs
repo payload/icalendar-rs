@@ -38,7 +38,7 @@
 //! )
 //!     .done();
 //!
-//! let todo = Todo::new().summary("Buy some milk").done();
+//! //let todo = Todo::new().summary("Buy some milk").done();
 //!
 //!
 //! let mut calendar = Calendar::new();
@@ -93,6 +93,7 @@ macro_rules! write_crlf {
 //pub mod period;
 mod calendar;
 mod components;
+pub mod parse;
 mod properties;
 
 //pub mod repeats;
