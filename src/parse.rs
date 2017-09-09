@@ -103,6 +103,21 @@ fn parse_propery() {
         );
 }
 
+#[test]
+#[ignore]
+fn parse_property_with_breaks() {
+
+    let sample_0 = b"DESCRIPTION:Hey, I'm gonna have a party\nBYOB: Bring your own beer.\nHendri\n k";
+
+    let expectation = Property {
+        key: "DESCRIPTION",
+        val: "Hey, I'm gonna have a party\nBYOB: Bring your own beer.\nHendrik",
+        params: vec![]
+    };
+
+    assert_eq!(property(sample_0), Done(&[][..], expectation));
+}
+
 named!(property(&[u8]) -> Property,
     do_parse!(
         opt!(multispace) >>

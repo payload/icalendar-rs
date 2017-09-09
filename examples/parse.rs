@@ -4,7 +4,7 @@ use chrono::*;
 use icalendar::*;
 
 fn main() {
-    let cal = include_str!("../invoicer.ics");
-    let parsed = parse::calendar(&cal);
+    let sample = include_str!("../test/example_write.ics");
+    let parsed = parse::calendar(sample);
     println!("{:?}", parsed);
 }
