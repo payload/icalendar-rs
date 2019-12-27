@@ -91,7 +91,7 @@ macro_rules! write_crlf {
 mod components;
 mod properties;
 mod calendar;
-#[cfg!(feature="parser")]
+#[cfg(feature="parser")]
 mod parser;
 
 //pub mod repeats;
