@@ -20,8 +20,10 @@ include = [
 
 [dependencies]
 chrono = "0.4"
-#error-chain = "*"
-#vobject = {path="../hub/vobject"}
+
+[dependencies.libical]
+git = "https://github.com/matthiasbeyer/libical"
+optional = true
 
 [dependencies.uuid]
 features = ["v4"]
@@ -29,3 +31,8 @@ version = "0.8"
 
 [dev-dependencies]
 pretty_assertions = "0.6"
+
+
+[features]
+default = []
+parser = ["libical"]
