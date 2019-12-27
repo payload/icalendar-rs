@@ -23,6 +23,8 @@ chrono = "0.4"
 
 [dependencies.libical]
 git = "https://github.com/matthiasbeyer/libical"
+branch = "icaltime-as-string"
+
 optional = true
 
 [dependencies.uuid]
