@@ -59,4 +59,7 @@ impl TryFrom<IcalVEvent> for Event {
     }
 }
 
+pub fn parse(s: &str) -> Result<Calendar, i32> {
+    IcalVCalendar::from_str(s, None).map_err(|_| 0).and_then(Calendar::try_from)
+}
 
