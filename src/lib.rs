@@ -92,7 +92,7 @@ mod components;
 mod properties;
 mod calendar;
 #[cfg(feature="parser")]
-mod parser;
+pub mod parser;
 
 //pub mod repeats;
 pub use crate::properties::{Property, Parameter, Class, ValueType};
