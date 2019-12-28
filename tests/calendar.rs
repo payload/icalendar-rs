@@ -1,5 +1,5 @@
 use chrono::prelude::*;
-use icalendar::{Calendar, Class, Component, Event, EventStatus, Todo};
+use icalendar::{Calendar, Class, Component, Event, EventStatus, Todo, parser};
 use pretty_assertions::assert_eq;
 
 const EXPECTED_CAL_CONTENT: &str = "\
@@ -61,3 +61,10 @@ fn test_calendar_to_string() {
     calendar.push(todo);
     assert_eq!(calendar.to_string(), EXPECTED_CAL_CONTENT);
 }
+
+#[test]
+fn test_string_to_calendar() {
+    let cal = parser::parse(EXPECTED_CAL_CONTENT);
+    assert!(cal.is_ok());
+}
+
