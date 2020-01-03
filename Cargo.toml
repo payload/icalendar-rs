@@ -22,8 +22,9 @@ include = [
 chrono = "0.4"
 
 [dependencies.libical]
-git = "https://github.com/matthiasbeyer/libical"
-branch = "icaltime-as-string"
+#git = "https://github.com/matthiasbeyer/libical"
+path = "../libical"
+#branch = "icaltime-as-string"
 
 optional = true
 

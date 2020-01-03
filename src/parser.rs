@@ -5,10 +5,6 @@ use crate::Component;
 use crate::Event;
 use crate::Calendar;
 
-use std::{
-    io
-};
-
 impl From<IcalVCalendar> for Calendar {
 
     fn from(ical: IcalVCalendar) -> Calendar {
@@ -24,31 +20,34 @@ impl From<IcalVCalendar> for Calendar {
 
 impl From<IcalVEvent> for Event {
 
-    fn from(ical: IcalVEvent) -> Event {
+    fn from(event: IcalVEvent) -> Event {
         let mut event = Event::new();
 
-        if let Some(dtend) = ical.get_dtend().map(|t| t.as_string()) {
+        if let Some(dtend) = event.get_dtend().map(|t| t.as_string()) {
             event.add_property("DTEND", &dtend);
         }
 
-        if let Some(dtstart) = ical.get_dtstart().map(|t| t.as_string()) {
+        if let Some(dtstart) = event.get_dtstart().map(|t| t.as_string()) {
             event.add_property("DTSTART", &dtstart);
         }
 
-        if let Some(summary) = ical.get_summary() {
+        if let Some(summary) = event.get_summary() {
             event.add_property("SUMMARY", &summary);
         }
 
-        if let Some(description) = ical.get_description() {
+        if let Some(description) = event.get_description() {
             event.add_property("DESCRIPTION", &description);
         }
 
-        if let Some(location) = ical.get_location() {
+        if let Some(location) = event.get_location() {
             event.add_property("LOCATION", &location);
         }
 
-        let recur_datetimes = ical.get_recur_datetimes().into_iter().map(|t| t.as_string());
-        let uid             = ical.get_uid();
+        if let Some(priority) = event.get_priority() {
+        }
+
+        let recur_datetimes = event.get_recur_datetimes().into_iter().map(|t| t.as_string());
+        let uid             = dbg!(ical.get_uid());
 
         event.uid(&uid);
 
@@ -56,7 +55,7 @@ impl From<IcalVEvent> for Event {
     }
 }
 
-pub fn parse(s: &str) -> io::Result<Calendar> {
+pub fn parse(s: &str) -> std::io::Result<Calendar> {
     IcalVCalendar::from_str(s, None).map(Calendar::from)
 }
 

@@ -56,7 +56,7 @@ fn test_calendar_to_string() {
         .due(cest_date.naive_local())
         .completed(utc_date)
         .summary("A Todo")
-        .uid("todouid")
+        .uid("123e4567-e89b-12d3-a456-426655440000")
         .add_property("DTSTAMP", "20190307T181159")
         .done();
     calendar.push(todo);
@@ -66,7 +66,8 @@ fn test_calendar_to_string() {
 #[test]
 #[cfg(feature="parser")]
 fn test_string_to_calendar() {
-    assert!(parser::parse(EXPECTED_CAL_CONTENT).is_ok());
+    let cal = parser::parse(EXPECTED_CAL_CONTENT).unwrap();
+    println!("{:#?}", cal);
 }
 
 
@@ -77,5 +78,13 @@ fn stringify_equality() {
     let cal2 = parser::parse(&cal1.to_string()).unwrap();
 
     assert_eq!(cal1.to_string(), cal2.to_string());
+}
+
+#[test]
+#[cfg(feature="parser")]
+fn parse_equality() {
+    let cal1 = parser::parse(EXPECTED_CAL_CONTENT).unwrap();
+
+    assert_eq!(cal1.to_string(), EXPECTED_CAL_CONTENT);
 }
 
