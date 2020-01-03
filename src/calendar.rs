@@ -35,7 +35,7 @@ impl CalendarElement {
 /// Represents a calendar
 ///
 /// You can `.add()` `Component`s to this.
-#[derive(Default,Debug)]
+#[derive(Default,Debug, )]
 pub struct Calendar {
     components: Vec<CalendarElement>
 }

@@ -42,9 +42,9 @@
 //!
 //!
 //! let mut calendar = Calendar::new();
-//! calendar.add(event);
-//! calendar.add(todo);
-//! calendar.add(bday);
+//! calendar.push(event);
+//! calendar.push(todo);
+//! calendar.push(bday);
 //! # }
 //! ```
 //!

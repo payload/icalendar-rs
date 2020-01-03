@@ -5,29 +5,26 @@ use crate::Component;
 use crate::Event;
 use crate::Calendar;
 
-use std::convert::TryFrom;
+use std::{
+    io
+};
 
-impl TryFrom<IcalVCalendar> for Calendar {
-    type Error = i32;
+impl From<IcalVCalendar> for Calendar {
 
-    fn try_from(ical: IcalVCalendar) -> Result<Calendar, Self::Error> {
+    fn from(ical: IcalVCalendar) -> Calendar {
         let mut cal = Calendar::new();
-        let events = ical.events_iter()
-            .map(|event| Event::try_from(event))
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
+        ical.events_iter()
+            .map(|event| Event::from(event))
             .for_each(|ev| {
                 cal.push(ev);
             });
-
-        Ok(cal)
+        cal
     }
 }
 
-impl TryFrom<IcalVEvent> for Event {
-    type Error = i32;
+impl From<IcalVEvent> for Event {
 
-    fn try_from(ical: IcalVEvent) -> Result<Event, Self::Error> {
+    fn from(ical: IcalVEvent) -> Event {
         let mut event = Event::new();
 
         if let Some(dtend) = ical.get_dtend().map(|t| t.as_string()) {
@@ -55,11 +52,11 @@ impl TryFrom<IcalVEvent> for Event {
 
         event.uid(&uid);
 
-        Ok(event)
+        event
     }
 }
 
-pub fn parse(s: &str) -> Result<Calendar, i32> {
-    IcalVCalendar::from_str(s, None).map_err(|_| 0).and_then(Calendar::try_from)
+pub fn parse(s: &str) -> io::Result<Calendar> {
+    IcalVCalendar::from_str(s, None).map(Calendar::from)
 }
 
