@@ -1,21 +1,7 @@
-// #[cfg(test)]
-// use pretty_assertions::assert_eq;
+#[cfg(test)]
+use pretty_assertions::assert_eq;
 
-use nom::{
-    branch::alt,
-    bytes::complete::{escaped, escaped_transform, tag, take_till, take_while},
-    character::complete::{
-        alpha1 as alpha, alphanumeric1 as alphanumeric, char, line_ending, multispace0, one_of,
-        space0,
-    },
-    character::{is_alphabetic, is_alphanumeric},
-    combinator::{cut, map, map_res, opt},
-    error::{context, convert_error, ErrorKind, ParseError, VerboseError},
-    multi::{many0, many_till},
-    number::complete::double,
-    sequence::{delimited, preceded, separated_pair, terminated},
-    Err, IResult,
-};
+use super::*;
 
 pub fn alpha_or_space<'a>(i: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {
     // take_while(|c| ((c as char).is_whitespace() || c == 0x32|| (c as char).is_alphabetic()) && c != 0x97 && c != b'\r')(i)
