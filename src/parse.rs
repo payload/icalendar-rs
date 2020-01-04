@@ -8,7 +8,7 @@ use std::str::from_utf8;
 
 use nom::{
     branch::alt,
-    bytes::complete::{escaped, tag, take_while},
+    bytes::complete::{escaped, tag, take_till, take_while},
     character::complete::{
         alpha1 as alpha, alphanumeric1 as alphanumeric, char, line_ending, multispace0, one_of,
         space0,
@@ -49,8 +49,19 @@ fn parse_parameter() {
     assert_eq!(
         dbg(parameter(b"; KEY=VALUE")),
         Ok((&[][..], Parameter{key: "KEY", val: "VALUE"})));
+    assert_eq!(
+        dbg(parameter(b"; KEY=VAL UE")),
+        Ok((&[][..], Parameter{key: "KEY", val: "VAL UE"})));
+    assert_eq!(
+        dbg(parameter(b"; KEY=")),
+        Ok((&[][..], Parameter{key: "KEY", val: ""})));
+}
+
+#[test]
+#[rustfmt::skip]
+fn parse_parameter_error() {
+    let dbg = |x| {println!("{:?}", x); x};
     assert!(dbg(parameter(b";KEY")).is_err());
-    assert!(dbg(parameter(b";KEY=")).is_err());
 }
 
 fn parameter<'a>(i: &'a [u8]) -> IResult<&'a [u8], Parameter> {
@@ -58,7 +69,7 @@ fn parameter<'a>(i: &'a [u8]) -> IResult<&'a [u8], Parameter> {
     let (i, _) = space0(i)?;
     let (i, key) = map_res(alpha, from_utf8)(i)?;
     let (i, _) = tag("=")(i)?;
-    let (i, val) = map_res(alphanumeric, from_utf8)(i)?;
+    let (i, val) = map_res(alphanumeric_or_space, from_utf8)(i)?;
     Ok((i, Parameter { key, val }))
 }
 
@@ -109,6 +120,17 @@ fn parse_property() {
         Ok((&[][..], Property{key: "KEY", val: "VALUE", params: vec![
             Parameter{key:"foo", val: "bar"}
             ]})));
+    assert_eq!(
+        property(b"KEY;foo=bar:VALUE space separated\n"),
+        Ok((&[][..], Property{key: "KEY", val: "VALUE space separated", params: vec![
+            Parameter{key:"foo", val: "bar"}
+            ]})));
+    // TODO: newlines followed by spaces must be ignored
+    // assert_eq!(
+    //     property(b"KEY;foo=bar:VALUE\n newline separated\n"),
+    //     Ok((&[][..], Property{key: "KEY", val: "VALUE newline separated", params: vec![
+    //         Parameter{key:"foo", val: "bar"}
+    //         ]})));
 }
 
 #[test]
@@ -127,13 +149,26 @@ fn parse_property_with_breaks() {
     assert_eq!(property(sample_0), Ok((&[][..], expectation)));
 }
 
+fn alpha_or_space<'a>(i: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {
+    // take_while(|c| ((c as char).is_whitespace() || c == 0x32|| (c as char).is_alphabetic()) && c != 0x97 && c != b'\r')(i)
+    take_while(|c| ((c as char).is_whitespace() || (c as char).is_alphabetic()))(i)
+}
+
+fn is_alphabetic_or_space(c: char) -> bool {
+    c != '\n' && (c.is_whitespace() || c.is_alphanumeric())
+}
+
+fn alphanumeric_or_space<'a>(i: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {
+    take_while(|c| is_alphabetic_or_space(c as char))(i)
+}
+
 fn property<'a>(i: &'a [u8]) -> IResult<&'a [u8], Property> {
     let (i, _) = multispace0(i)?;
     let (i, key) = map_res(alpha, from_utf8)(i)?;
     let (i, params) = parameter_list(i)?;
     let (i, _) = tag(":")(i)?;
 
-    let (i, val) = map_res(alphanumeric, from_utf8)(i)?;
+    let (i, val) = map_res(alphanumeric_or_space, from_utf8)(i)?;
 
     let (i, _) = line_ending(i)?;
     Ok((i, Property { key, val, params }))
@@ -181,21 +216,34 @@ pub struct Component<'a> {
 }
 
 #[test]
-#[ignore]
 #[rustfmt::skip]
-fn parse_empty_component() {
-    assert_eq!(component(b"BEGIN:VEVENT\nEND:VEVENT\n"), Ok((&[][..], Component{name: "VEVENT", properties: vec![]})));
-
-    assert_eq!(
-        component(b"BEGIN:VEVENT\n\nEND:VEVENT\n"),
-        Ok((&[][..],
-             Component{name: "VEVENT", properties: vec![]}
-             )));
+#[ignore]
+fn parse_empty_component1() {
     assert_eq!(
         component(b"BEGIN:VEVENT\nEND:VEVENT\n"),
-        Ok((&[][..],
-             Component{name: "VEVENT", properties: vec![]}
-             )));
+        Ok((&[][..], Component{name: "VEVENT", properties: vec![]}))
+    );
+
+}
+
+#[test]
+#[rustfmt::skip]
+#[ignore]
+fn parse_empty_component2() {
+    assert_eq!(
+        component(b"BEGIN:VEVENT\n\nEND:VEVENT\n"),
+        Ok((&[][..], Component{name: "VEVENT", properties: vec![]})),
+        "empty component with empty line");
+}
+
+#[test]
+#[rustfmt::skip]
+#[ignore]
+fn parse_empty_component3() {
+    assert_eq!(
+        component(b"BEGIN:VEVENT\nEND:VEVENT\n"),
+        Ok((&[][..], Component{name: "VEVENT", properties: vec![]})),
+        "empty component");
 }
 
 #[test]
