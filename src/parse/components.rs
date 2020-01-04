@@ -1,6 +1,7 @@
 
-    use super::*;
-    #[cfg(test)] use pretty_assertions::assert_eq;
+use super::*;
+#[cfg(test)]
+use pretty_assertions::assert_eq;
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Component<'a> {
@@ -41,7 +42,6 @@ fn parse_empty_component3() {
 
 #[test]
 #[rustfmt::skip]
-#[ignore]
 fn parse_component() {
     let sample_0 = b"BEGIN:VEVENT\nKEY;foo=bar:VALUE\nKEY;foo=bar;DATE=20170218:VALUE\nEND:VEVENT\n";
     let sample_1 = b"BEGIN:VEVENT
@@ -65,10 +65,6 @@ END:VEVENT
     println!("expectation: {:#?}", expectation);
     println!("vs reality : {:#?}", component(sample_1));
 
-    //assert_eq!(
-    //    component(sample_1),
-    //    Done(&[][..], expectation.clone()));
-
     assert_eq!(
         component(sample_1).unwrap().1,
         expectation.clone());
@@ -84,7 +80,7 @@ pub fn calendar(raw: &str) -> Vec<Component> {
     }
 }
 
-fn component<'a>(i: &'a [u8]) -> IResult<&'a [u8], Component> {
+pub fn component<'a>(i: &'a [u8]) -> IResult<&'a [u8], Component> {
     let (i, _) = tag("BEGIN:")(i)?;
     let (i, name) = map_res(alpha, from_utf8)(i)?;
     let (i, (properties, _)) = many_till(property, tag("END:"))(i)?;
@@ -93,7 +89,6 @@ fn component<'a>(i: &'a [u8]) -> IResult<&'a [u8], Component> {
     Ok((i, Component { name, properties }))
 }
 
-fn components<'a>(i: &'a [u8]) -> IResult<&'a [u8], Vec<Component>> {
+pub fn components<'a>(i: &'a [u8]) -> IResult<&'a [u8], Vec<Component>> {
     many0(component)(i)
 }
-

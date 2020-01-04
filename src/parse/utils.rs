@@ -76,7 +76,7 @@ fn ical_alphanumeric_equality() {
     let input3 = &b"abcd 345678 mnopqrstu"[..];
     let input3 = &b"abcd-----------------"[..];
     let input4 = &b"abcd 345678 mnopqr\ns"[..];
-    let input5 = &b"abcd 345678 mnopqrs\n"[..];
+    let input5 = &b"abcd 345678,;|opqrs\n"[..];
     for input in &[input1, input2, input3, input4, input5] {
         assert_eq!(
             ical_lines_alphanumeric(input),

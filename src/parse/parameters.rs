@@ -35,8 +35,7 @@ fn parse_parameter() {
 #[test]
 #[rustfmt::skip]
 fn parse_parameter_error() {
-    let dbg = |x| {println!("{:?}", x); x};
-    assert!(dbg(parameter(b";KEY")).is_err());
+    assert!(parameter(b";KEY").is_err());
 }
 
 pub fn parameter<'a>(i: &'a [u8]) -> IResult<&'a [u8], Parameter> {
@@ -44,7 +43,7 @@ pub fn parameter<'a>(i: &'a [u8]) -> IResult<&'a [u8], Parameter> {
     let (i, _) = space0(i)?;
     let (i, key) = map_res(alpha, from_utf8)(i)?;
     let (i, _) = tag("=")(i)?;
-    let (i, val) = map_res(utils::alphanumeric_or_space, from_utf8)(i)?;
+    let (i, val) = map_res(utils::ical_lines_alphanumeric, from_utf8)(i)?;
     Ok((i, Parameter { key, val }))
 }
 

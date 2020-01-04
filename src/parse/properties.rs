@@ -55,19 +55,18 @@ pub fn property<'a>(i: &'a [u8]) -> IResult<&'a [u8], Property> {
     let (i, _) = tag(":")(i)?;
 
     let (i, val) = map_res(utils::ical_lines, from_utf8)(i)?;
-    // let (i, val) = map_res(utils::alphanumeric_or_space, from_utf8)(i)?;
 
     let (i, _) = line_ending(i)?;
     Ok((i, Property { key, val, params }))
 }
 
-/*
+
 #[test]
 #[rustfmt::skip]
 fn parse_property_list() {
 
     assert_eq!(
-        property_list(b"KEY;foo=bar:VALUE\n  KEYA;foo=bar; DATE=20170218:VALUE\n"),
+        property_list(b"KEY;foo=bar:VALUE\nKEY;foo=bar; DATE=20170218:VALUE\n"),
         Ok((&[][..], vec![
             Property{key: "KEY", val: "VALUE", params: vec![ Parameter{key:"foo", val: "bar"} ]},
             Property{key: "KEY", val: "VALUE", params: vec![
@@ -94,4 +93,3 @@ fn parse_property_list() {
 pub fn property_list<'a>(i: &'a [u8]) -> IResult<&'a [u8], Vec<Property>> {
     many0(property)(i)
 }
-*/
