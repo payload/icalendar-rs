@@ -21,7 +21,7 @@ include = [
 
 [dependencies]
 chrono = "0.4"
-nom = "2.1.0"
+nom = "5.0"
 #error-chain = "*"
 #vobject = {path="../hub/vobject"}
 
@@ -30,4 +30,4 @@ features = ["v4"]
 version = "0.8"
 
 [dev-dependencies]
-pretty_assertions = "0.6"
+pretty_assertions = "0.6.1"

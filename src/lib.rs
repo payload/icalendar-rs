@@ -11,11 +11,8 @@
 //! * `Property`s may have `Parameter`s
 //!
 //! ```rust
-//! # extern crate chrono;
-//! # extern crate icalendar;
 //! # use chrono::*;
 //! # use icalendar::*;
-//! # fn main() {
 //! let event = Event::new()
 //!     .summary("test event")
 //!     .description("here I have something really important to do")
@@ -38,14 +35,13 @@
 //! )
 //!     .done();
 //!
-//! //let todo = Todo::new().summary("Buy some milk").done();
+//! let todo = Todo::new().summary("Buy some milk").done();
 //!
 //!
 //! let mut calendar = Calendar::new();
 //! calendar.push(event);
 //! calendar.push(todo);
 //! calendar.push(bday);
-//! # }
 //! ```
 //!
 //! ## Breaking API Changes in version 0.7.0
