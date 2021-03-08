@@ -3,7 +3,7 @@ use pretty_assertions::assert_eq;
 
 use super::*;
 
-pub fn alpha_or_space<'a>(i: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {
+pub fn alpha_or_space<'a>(i: &str) -> IResult<&str, &str> {
     // take_while(|c| ((c as char).is_whitespace() || c == 0x32|| (c as char).is_alphabetic()) && c != 0x97 && c != b'\r')(i)
     take_while(|c| ((c as char).is_whitespace() || (c as char).is_alphabetic()))(i)
 }
@@ -16,67 +16,67 @@ pub fn is_alphabetic_or_space(c: char) -> bool {
     c != '\n' && (c.is_whitespace() || c.is_alphabetic())
 }
 
-pub fn alphanumeric_or_space<'a>(i: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {
-    take_while(move |c: u8| is_alphanumeric_or_space(c as char))(i)
+pub fn alphanumeric_or_space<'a>(i: &str) -> IResult<&str, &str> {
+    take_while(move |c| is_alphanumeric_or_space(c as char))(i)
 }
 
 #[test]
 #[rustfmt::skip]
 fn parse_ical_lines() {
-    let parsed1 = ical_lines(b"abcdefg\n hijklmnopqrstu");
-    let parsed2 = ical_lines(b"abcdefg\n----------");
-    let parsed3 = ical_lines(b"abcdefg----------");
+    let parsed1 = ical_lines("abcdefg\n hijklmnopqrstu");
+    let parsed2 = ical_lines("abcdefg\n----------");
+    let parsed3 = ical_lines("abcdefg----------");
 
-    assert_eq!(parsed1, Ok((&[][..], &b"abcdefg\n hijklmnopqrstu"[..])));
-    assert_eq!(parsed2, Ok((&b"\n----------"[..], &b"abcdefg"[..])));
-    assert_eq!(parsed3, Ok((&b""[..], &b"abcdefg----------"[..])));
+    assert_eq!(parsed1, Ok(("", &"abcdefg\n hijklmnopqrstu"[..])));
+    assert_eq!(parsed2, Ok((&"\n----------"[..], &"abcdefg"[..])));
+    assert_eq!(parsed3, Ok((&""[..], &"abcdefg----------"[..])));
 }
 
 #[test]
 #[rustfmt::skip]
 fn parse_ical_alphabetic() {
-    let parsed1 = ical_lines_alphabetic(b"abcdefg\n hijklmnopqrstu");
-    let parsed2 = ical_lines_alphabetic(b"abcdefg\n----------");
-    let parsed3 = ical_lines_alphabetic(b"abcdefg----------");
-    let parsed4 = ical_lines_alphabetic(b"abcdefg1234567890");
+    let parsed1 = ical_lines_alphabetic("abcdefg\n hijklmnopqrstu");
+    let parsed2 = ical_lines_alphabetic("abcdefg\n----------");
+    let parsed3 = ical_lines_alphabetic("abcdefg----------");
+    let parsed4 = ical_lines_alphabetic("abcdefg1234567890");
 
-    assert_eq!(parsed1, Ok((&[][..], &b"abcdefg\n hijklmnopqrstu"[..])));
+    assert_eq!(parsed1, Ok(("", &"abcdefg\n hijklmnopqrstu"[..])));
     assert_eq!(parsed2, Ok((
-         &b"\n----------"[..],
-        &b"abcdefg"[..],
+         &"\n----------"[..],
+        &"abcdefg"[..],
         )));
     assert_eq!(parsed3, Ok((
-        &b"----------"[..],
-        &b"abcdefg"[..],
+        &"----------"[..],
+        &"abcdefg"[..],
     )));
     assert_eq!(parsed4, Ok((
-        &b"1234567890"[..],
-        &b"abcdefg"[..],
+        &"1234567890"[..],
+        &"abcdefg"[..],
     )));
 }
 
 #[test]
 #[rustfmt::skip]
 fn parse_ical_alphanumeric() {
-    let parsed1 = ical_lines_alphanumeric(b"abcdefg\n hijklmnopqrstu");
-    let parsed2 = ical_lines_alphanumeric(b"abcdefg\n----------");
-    let parsed3 = ical_lines_alphanumeric(b"abcdefg----------");
-    let parsed4 = ical_lines_alphanumeric(b"abcdefg1234567890");
+    let parsed1 = ical_lines_alphanumeric("abcdefg\n hijklmnopqrstu");
+    let parsed2 = ical_lines_alphanumeric("abcdefg\n----------");
+    let parsed3 = ical_lines_alphanumeric("abcdefg----------");
+    let parsed4 = ical_lines_alphanumeric("abcdefg1234567890");
 
-    assert_eq!(parsed1, Ok((&[][..], &b"abcdefg\n hijklmnopqrstu"[..])));
-    assert_eq!(parsed2, Ok((&b"\n----------"[..], &b"abcdefg"[..])));
-    assert_eq!(parsed3, Ok((&b"----------"[..], &b"abcdefg"[..])));
-    assert_eq!(parsed4, Ok((&b""[..], &b"abcdefg1234567890"[..])));
+    assert_eq!(parsed1, Ok(("", &"abcdefg\n hijklmnopqrstu"[..])));
+    assert_eq!(parsed2, Ok((&"\n----------"[..], &"abcdefg"[..])));
+    assert_eq!(parsed3, Ok((&"----------"[..], &"abcdefg"[..])));
+    assert_eq!(parsed4, Ok((&""[..], &"abcdefg1234567890"[..])));
 }
 
 #[test]
 fn ical_alphanumeric_equality() {
-    let input1 = &b"abcdefghijklmnopqrstu"[..];
-    let input2 = &b"abcd2345678lmnopqrstu"[..];
-    let input3 = &b"abcd 345678 mnopqrstu"[..];
-    let input3 = &b"abcd-----------------"[..];
-    let input4 = &b"abcd 345678 mnopqr\ns"[..];
-    let input5 = &b"abcd 345678,;|opqrs\n"[..];
+    let input1 = &"abcdefghijklmnopqrstu"[..];
+    let input2 = &"abcd2345678lmnopqrstu"[..];
+    let input3 = &"abcd 345678 mnopqrstu"[..];
+    let input3 = &"abcd-----------------"[..];
+    let input4 = &"abcd 345678 mnopqr\ns"[..];
+    let input5 = &"abcd 345678,;|opqrs\n"[..];
     for input in &[input1, input2, input3, input4, input5] {
         assert_eq!(
             ical_lines_alphanumeric(input),
@@ -87,7 +87,7 @@ fn ical_alphanumeric_equality() {
 
 #[test]
 fn ical_alphanumeric_no_equality() {
-    let input1 = &b"abcdefg\n 123456789"[..];
+    let input1 = &"abcdefg\n 123456789"[..];
     for input in &[input1] {
         assert_ne!(
             ical_lines_alphanumeric(input),
@@ -96,20 +96,20 @@ fn ical_alphanumeric_no_equality() {
     }
 }
 
-pub fn ical_lines<'a>(input: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {
+pub fn ical_lines<'a>(input: &str) -> IResult<&str, &str> {
     ical_lines_check(input, |_| true)
 }
-pub fn ical_lines_alphabetic<'a>(input: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {
+pub fn ical_lines_alphabetic<'a>(input: &str) -> IResult<&str, &str> {
     ical_lines_check(input, |x| (x as char).is_alphabetic())
 }
-pub fn ical_lines_alphanumeric<'a>(input: &'a [u8]) -> IResult<&'a [u8], &'a [u8]> {
+pub fn ical_lines_alphanumeric<'a>(input: &str) -> IResult<&str, &str> {
     ical_lines_check(input, |x| (x as char).is_alphanumeric())
 }
-pub fn ical_lines_check<'a, F>(input: &'a [u8], check: F) -> IResult<&'a [u8], &'a [u8]>
+pub fn ical_lines_check<'a, F>(input: &str, check: F) -> IResult<&str, &str>
 where
     F: Fn(u8) -> bool,
 {
-    for (i, c) in input.windows(2).enumerate() {
+    for (i, c) in input.as_bytes().windows(2).enumerate() {
         // println!("{:?}", (i, c, input.len()));
         let remainder = &input[i..];
         let output = &input[..i];
@@ -127,20 +127,20 @@ where
         }
     }
     // literally a corner case
-    if input.last() == Some(&b'\n') {
+    if input.as_bytes().last() == Some(&b'\n') {
         let remainder = &input[input.len() - 1..];
         let output = &input[..input.len() - 1];
         return Ok((remainder, output));
     }
-    Ok((b"", input))
+    Ok(("", input))
 }
 
 // fn transformed_alphanumeric_or_space(input: &[u8]) ->  IResult<&[u8], Vec<u8>> {
 //     fn convert(i: &[u8]) -> IResult<&[u8], &[u8]>  {
 //         alt((
-//             map(tag(b"\\"), |_| "\\".as_bytes()),
-//             map(tag(b"\""), |_| "\"".as_bytes()),
-//             map(tag(b"n"),  |_| "\n".as_bytes()),
+//             map(tag("\\"), |_| "\\".as_bytes()),
+//             map(tag("\""), |_| "\"".as_bytes()),
+//             map(tag("n"),  |_| "\n".as_bytes()),
 //         ))(i)
 //     };
 //

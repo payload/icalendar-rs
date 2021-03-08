@@ -14,8 +14,8 @@ pub struct Component<'a> {
 #[ignore]
 fn parse_empty_component1() {
     assert_eq!(
-        component(b"BEGIN:VEVENT\nEND:VEVENT\n"),
-        Ok((&[][..], Component{name: "VEVENT", properties: vec![]}))
+        component("BEGIN:VEVENT\nEND:VEVENT\n"),
+        Ok(("", Component{name: "VEVENT", properties: vec![]}))
     );
 
 }
@@ -25,8 +25,8 @@ fn parse_empty_component1() {
 #[ignore]
 fn parse_empty_component2() {
     assert_eq!(
-        component(b"BEGIN:VEVENT\n\nEND:VEVENT\n"),
-        Ok((&[][..], Component{name: "VEVENT", properties: vec![]})),
+        component("BEGIN:VEVENT\n\nEND:VEVENT\n"),
+        Ok(("", Component{name: "VEVENT", properties: vec![]})),
         "empty component with empty line");
 }
 
@@ -35,16 +35,16 @@ fn parse_empty_component2() {
 #[ignore]
 fn parse_empty_component3() {
     assert_eq!(
-        component(b"BEGIN:VEVENT\nEND:VEVENT\n"),
-        Ok((&[][..], Component{name: "VEVENT", properties: vec![]})),
+        component("BEGIN:VEVENT\nEND:VEVENT\n"),
+        Ok(("", Component{name: "VEVENT", properties: vec![]})),
         "empty component");
 }
 
 #[test]
 #[rustfmt::skip]
 fn parse_component() {
-    let sample_0 = b"BEGIN:VEVENT\nKEY;foo=bar:VALUE\nKEY;foo=bar;DATE=20170218:VALUE\nEND:VEVENT\n";
-    let sample_1 = b"BEGIN:VEVENT
+    let sample_0 = "BEGIN:VEVENT\nKEY;foo=bar:VALUE\nKEY;foo=bar;DATE=20170218:VALUE\nEND:VEVENT\n";
+    let sample_1 = "BEGIN:VEVENT
 KEY;foo=bar:VALUE
 KEY;foo=bar;DATE=20170218:VALUE
 END:VEVENT
@@ -71,7 +71,7 @@ END:VEVENT
 }
 
 pub fn calendar(raw: &str) -> Vec<Component> {
-    let parsed = components(raw.as_bytes());
+    let parsed = components(raw);
     println!("{:?}", parsed);
     if let Ok((_, components)) = parsed {
         components
@@ -80,15 +80,15 @@ pub fn calendar(raw: &str) -> Vec<Component> {
     }
 }
 
-pub fn component<'a>(i: &'a [u8]) -> IResult<&'a [u8], Component> {
+pub fn component<'a>(i: &str) -> IResult<&str, Component> {
     let (i, _) = tag("BEGIN:")(i)?;
-    let (i, name) = map_res(alpha, from_utf8)(i)?;
+    let (i, name) = alpha(i)?;
     let (i, (properties, _)) = many_till(property, tag("END:"))(i)?;
     let (i, _) = tag(name)(i)?;
 
     Ok((i, Component { name, properties }))
 }
 
-pub fn components<'a>(i: &'a [u8]) -> IResult<&'a [u8], Vec<Component>> {
+pub fn components<'a>(i: &str) -> IResult<&str, Vec<Component>> {
     many0(component)(i)
 }

@@ -13,22 +13,22 @@ pub struct Property<'a> {
 #[test]
 #[rustfmt::skip]
 fn parse_property() {
-    assert_eq!(property(b"KEY:VALUE\n"), Ok((&[][..], Property{key: "KEY", val: "VALUE", params: vec![]} )));
+    assert_eq!(property("KEY:VALUE\n"), Ok(("", Property{key: "KEY", val: "VALUE", params: vec![]} )));
 
     assert_eq!(
-        property(b"KEY;foo=bar:VALUE\n"),
-        Ok((&[][..], Property{key: "KEY", val: "VALUE", params: vec![
+        property("KEY;foo=bar:VALUE\n"),
+        Ok(("", Property{key: "KEY", val: "VALUE", params: vec![
             Parameter{key:"foo", val: "bar"}
             ]})));
     assert_eq!(
-        property(b"KEY;foo=bar:VALUE space separated\n"),
-        Ok((&[][..], Property{key: "KEY", val: "VALUE space separated", params: vec![
+        property("KEY;foo=bar:VALUE space separated\n"),
+        Ok(("", Property{key: "KEY", val: "VALUE space separated", params: vec![
             Parameter{key:"foo", val: "bar"}
             ]})));
     // TODO: newlines followed by spaces must be ignored
     assert_eq!(
-        property(b"KEY;foo=bar:VALUE\n newline separated\n"),
-        Ok((&[][..], Property{key: "KEY", val: "VALUE\n newline separated", params: vec![
+        property("KEY;foo=bar:VALUE\n newline separated\n"),
+        Ok(("", Property{key: "KEY", val: "VALUE\n newline separated", params: vec![
             Parameter{key:"foo", val: "bar"}
             ]})));
 }
@@ -37,7 +37,7 @@ fn parse_property() {
 #[rustfmt::skip]
 fn parse_property_with_breaks() {
 
-    let sample_0 = b"DESCRIPTION:Hey, I'm gonna have a party\n BYOB: Bring your own beer.\n Hendri\n k\n";
+    let sample_0 = "DESCRIPTION:Hey, I'm gonna have a party\n BYOB: Bring your own beer.\n Hendri\n k\n";
 
     let expectation = Property {
         key: "DESCRIPTION",
@@ -45,16 +45,16 @@ fn parse_property_with_breaks() {
         params: vec![]
     };
 
-    assert_eq!(property(sample_0), Ok((&[][..], expectation)));
+    assert_eq!(property(sample_0), Ok(("", expectation)));
 }
 
-pub fn property<'a>(i: &'a [u8]) -> IResult<&'a [u8], Property> {
+pub fn property<'a>(i: &str) -> IResult<&str, Property> {
     let (i, _) = multispace0(i)?;
-    let (i, key) = map_res(alpha, from_utf8)(i)?;
+    let (i, key) = alpha(i)?;
     let (i, params) = parameter_list(i)?;
     let (i, _) = tag(":")(i)?;
 
-    let (i, val) = map_res(utils::ical_lines, from_utf8)(i)?;
+    let (i, val) = utils::ical_lines(i)?;
 
     let (i, _) = line_ending(i)?;
     Ok((i, Property { key, val, params }))
@@ -66,8 +66,8 @@ pub fn property<'a>(i: &'a [u8]) -> IResult<&'a [u8], Property> {
 fn parse_property_list() {
 
     assert_eq!(
-        property_list(b"KEY;foo=bar:VALUE\nKEY;foo=bar; DATE=20170218:VALUE\n"),
-        Ok((&[][..], vec![
+        property_list("KEY;foo=bar:VALUE\nKEY;foo=bar; DATE=20170218:VALUE\n"),
+        Ok(("", vec![
             Property{key: "KEY", val: "VALUE", params: vec![ Parameter{key:"foo", val: "bar"} ]},
             Property{key: "KEY", val: "VALUE", params: vec![
                 Parameter{key:"foo", val: "bar"},
@@ -76,8 +76,8 @@ fn parse_property_list() {
         ]))
         );
     assert_eq!(
-        property_list(b"KEY;foo=bar:VALUE\nKEY;foo=bar;DATE=20170218:VALUE\n"),
-        Ok((&[][..], vec![
+        property_list("KEY;foo=bar:VALUE\nKEY;foo=bar;DATE=20170218:VALUE\n"),
+        Ok(("", vec![
             Property{key: "KEY", val: "VALUE", params: vec![ Parameter{key:"foo", val: "bar"} ]},
             Property{key: "KEY", val: "VALUE", params: vec![
                 Parameter{key:"foo", val: "bar"},
@@ -86,10 +86,10 @@ fn parse_property_list() {
         ]))
         );
     assert_eq!(
-        property_list(b""),
-        Ok((&[][..], vec![ ])));
+        property_list(""),
+        Ok(("", vec![ ])));
 }
 
-pub fn property_list<'a>(i: &'a [u8]) -> IResult<&'a [u8], Vec<Property>> {
+pub fn property_list<'a>(i: &str) -> IResult<&str, Vec<Property>> {
     many0(property)(i)
 }
