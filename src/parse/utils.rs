@@ -1,11 +1,12 @@
+use nom::preceded;
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 
 use super::*;
 
-pub fn alpha_or_space<'a>(i: &str) -> IResult<&str, &str> {
+pub fn alpha_or_space(i: &str) -> IResult<&str, &str> {
     // take_while(|c| ((c as char).is_whitespace() || c == 0x32|| (c as char).is_alphabetic()) && c != 0x97 && c != b'\r')(i)
-    take_while(|c| ((c as char).is_whitespace() || (c as char).is_alphabetic()))(i)
+    take_while(|c: char| (c.is_whitespace() || c.is_alphabetic()))(i)
 }
 
 pub fn is_alphanumeric_or_space(c: char) -> bool {
@@ -16,29 +17,31 @@ pub fn is_alphabetic_or_space(c: char) -> bool {
     c != '\n' && (c.is_whitespace() || c.is_alphabetic())
 }
 
-pub fn alphanumeric_or_space<'a>(i: &str) -> IResult<&str, &str> {
-    take_while(move |c| is_alphanumeric_or_space(c as char))(i)
+pub fn alphanumeric_or_space(i: &str) -> IResult<&str, &str> {
+    take_while(is_alphanumeric_or_space)(i)
 }
 
 #[test]
 #[rustfmt::skip]
-fn parse_ical_lines() {
-    let parsed1 = ical_lines("abcdefg\n hijklmnopqrstu");
-    let parsed2 = ical_lines("abcdefg\n----------");
-    let parsed3 = ical_lines("abcdefg----------");
+fn parse_ical_line() {
+    let parsed1 = ical_line("abcdefg\n hijklmnopqrstu");
+    let parsed2 = ical_line("abcdefg\n----------");
+    let parsed3 = ical_line("abcdefg----------");
+    let parsed4 = ical_line("abcdefg\n hijklmnopqrstu\n vxyz\n");
 
-    assert_eq!(parsed1, Ok(("", &"abcdefg\n hijklmnopqrstu"[..])));
-    assert_eq!(parsed2, Ok((&"\n----------"[..], &"abcdefg"[..])));
-    assert_eq!(parsed3, Ok((&""[..], &"abcdefg----------"[..])));
+    assert_eq!(parsed1, Ok(("", "abcdefg\n hijklmnopqrstu")));
+    assert_eq!(parsed2, Ok(("\n----------", "abcdefg")));
+    assert_eq!(parsed3, Ok(("", "abcdefg----------")));
+    assert_eq!(parsed4, Ok(("\n", "abcdefg\n hijklmnopqrstu\n vxyz")));
 }
 
 #[test]
 #[rustfmt::skip]
 fn parse_ical_alphabetic() {
-    let parsed1 = ical_lines_alphabetic("abcdefg\n hijklmnopqrstu");
-    let parsed2 = ical_lines_alphabetic("abcdefg\n----------");
-    let parsed3 = ical_lines_alphabetic("abcdefg----------");
-    let parsed4 = ical_lines_alphabetic("abcdefg1234567890");
+    let parsed1 = ical_line_alphabetic("abcdefg\n hijklmnopqrstu");
+    let parsed2 = ical_line_alphabetic("abcdefg\n----------");
+    let parsed3 = ical_line_alphabetic("abcdefg----------");
+    let parsed4 = ical_line_alphabetic("abcdefg1234567890");
 
     assert_eq!(parsed1, Ok(("", &"abcdefg\n hijklmnopqrstu"[..])));
     assert_eq!(parsed2, Ok((
@@ -58,10 +61,11 @@ fn parse_ical_alphabetic() {
 #[test]
 #[rustfmt::skip]
 fn parse_ical_alphanumeric() {
-    let parsed1 = ical_lines_alphanumeric("abcdefg\n hijklmnopqrstu");
-    let parsed2 = ical_lines_alphanumeric("abcdefg\n----------");
-    let parsed3 = ical_lines_alphanumeric("abcdefg----------");
-    let parsed4 = ical_lines_alphanumeric("abcdefg1234567890");
+    let parsed1 = ical_line_alphanumeric("abcdefg\n hijklmnopqrstu");
+    let parsed2 = ical_line_alphanumeric("abcdefg\n----------");
+    let parsed3 = ical_line_alphanumeric("abcdefg----------");
+    let parsed4 = ical_line_alphanumeric("abcdefg1234567890");
+    let parsed5 = ical_line_alphanumeric("abcdefg\n hijklmnopqrstu\n vwxz");
 
     assert_eq!(parsed1, Ok(("", &"abcdefg\n hijklmnopqrstu"[..])));
     assert_eq!(parsed2, Ok((&"\n----------"[..], &"abcdefg"[..])));
@@ -78,34 +82,30 @@ fn ical_alphanumeric_equality() {
     let input4 = &"abcd 345678 mnopqr\ns"[..];
     let input5 = &"abcd 345678,;|opqrs\n"[..];
     for input in &[input1, input2, input3, input4, input5] {
-        assert_eq!(
-            ical_lines_alphanumeric(input),
-            alphanumeric_or_space(*input)
-        );
+        assert_eq!(ical_line_alphanumeric(input), alphanumeric_or_space(*input));
     }
 }
 
 #[test]
 fn ical_alphanumeric_no_equality() {
-    let input1 = &"abcdefg\n 123456789"[..];
-    for input in &[input1] {
-        assert_ne!(
-            ical_lines_alphanumeric(input),
-            alphanumeric_or_space(*input)
-        );
-    }
+    let input = &"abcdefg\n 123456789"[..];
+    // for input in &[input1] {
+    assert_ne!(ical_line_alphanumeric(input), alphanumeric_or_space(input));
+    // }
 }
 
-pub fn ical_lines<'a>(input: &str) -> IResult<&str, &str> {
-    ical_lines_check(input, |_| true)
+pub fn ical_line(input: &str) -> IResult<&str, &str> {
+    ical_line_check(input, |_| true)
 }
-pub fn ical_lines_alphabetic<'a>(input: &str) -> IResult<&str, &str> {
-    ical_lines_check(input, |x| (x as char).is_alphabetic())
+pub fn ical_line_alphabetic(input: &str) -> IResult<&str, &str> {
+    ical_line_check(input, |x| (x as char).is_alphabetic())
 }
-pub fn ical_lines_alphanumeric<'a>(input: &str) -> IResult<&str, &str> {
-    ical_lines_check(input, |x| (x as char).is_alphanumeric())
+
+pub fn ical_line_alphanumeric(input: &str) -> IResult<&str, &str> {
+    ical_line_check(input, |x| (x as char).is_alphanumeric())
 }
-pub fn ical_lines_check<'a, F>(input: &str, check: F) -> IResult<&str, &str>
+
+pub fn ical_line_check<F>(input: &str, check: F) -> IResult<&str, &str>
 where
     F: Fn(u8) -> bool,
 {
@@ -133,6 +133,52 @@ where
         return Ok((remainder, output));
     }
     Ok(("", input))
+}
+
+pub fn ical_lines(input: &str) -> impl Iterator<Item = &str> {
+
+    let mut rest = input;
+    std::iter::from_fn(move || {
+
+        match preceded(opt(tag("\n")), ical_line)(rest) {
+            Ok((left, "")) => {
+                None
+            }
+            Ok((left, line)) => {
+                rest = left;
+                Some(line)
+            }
+            Err(e) => {
+                eprintln!("{}", e);
+                None
+            }
+        }
+    })
+}
+
+fn remove_extra_breaks(input: &str) -> String {
+    input.replace("\n ", "")
+}
+
+#[test]
+fn test_line_iterator() {
+    let text: String = r#"1 hello world
+2 hello
+  world
+3 hello world
+4 hello world
+"#.into();
+
+    let lines = ical_lines(&text).map(remove_extra_breaks).collect::<Vec<_>>();
+    assert_eq!(
+        lines,
+        vec![
+            "1 hello world",
+            "2 hello world",
+            "3 hello world",
+            "4 hello world",
+        ]
+    )
 }
 
 // fn transformed_alphanumeric_or_space(input: &[u8]) ->  IResult<&[u8], Vec<u8>> {

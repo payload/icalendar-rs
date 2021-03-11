@@ -38,12 +38,12 @@ fn parse_parameter_error() {
     assert!(parameter(";KEY").is_err());
 }
 
-pub fn parameter<'a>(i: &str) -> IResult<&str, Parameter> {
+pub fn parameter(i: &str) -> IResult<&str, Parameter> {
     let (i, _) = tag(";")(i)?;
     let (i, _) = space0(i)?;
     let (i, key) = alpha(i)?;
     let (i, _) = tag("=")(i)?;
-    let (i, val) = utils::ical_lines_alphanumeric(i)?;
+    let (i, val) = utils::ical_line_alphanumeric(i)?;
     Ok((i, Parameter { key, val }))
 }
 
@@ -70,7 +70,7 @@ pub fn parse_parameter_list() {
         ])));
 }
 
-pub fn parameter_list<'a>(i: &str) -> IResult<&str, Vec<Parameter>> {
+pub fn parameter_list(i: &str) -> IResult<&str, Vec<Parameter>> {
     many0(parameter)(i)
 }
 

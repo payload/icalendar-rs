@@ -48,13 +48,13 @@ fn parse_property_with_breaks() {
     assert_eq!(property(sample_0), Ok(("", expectation)));
 }
 
-pub fn property<'a>(i: &str) -> IResult<&str, Property> {
+pub fn property(i: &str) -> IResult<&str, Property> {
     let (i, _) = multispace0(i)?;
     let (i, key) = alpha(i)?;
     let (i, params) = parameter_list(i)?;
     let (i, _) = tag(":")(i)?;
 
-    let (i, val) = utils::ical_lines(i)?;
+    let (i, val) = utils::ical_line(i)?;
 
     let (i, _) = line_ending(i)?;
     Ok((i, Property { key, val, params }))
@@ -90,6 +90,6 @@ fn parse_property_list() {
         Ok(("", vec![ ])));
 }
 
-pub fn property_list<'a>(i: &str) -> IResult<&str, Vec<Property>> {
+pub fn property_list(i: &str) -> IResult<&str, Vec<Property>> {
     many0(property)(i)
 }

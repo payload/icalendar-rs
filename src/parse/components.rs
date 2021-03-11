@@ -80,7 +80,7 @@ pub fn calendar(raw: &str) -> Vec<Component> {
     }
 }
 
-pub fn component<'a>(i: &str) -> IResult<&str, Component> {
+pub fn component(i: &str) -> IResult<&str, Component> {
     let (i, _) = tag("BEGIN:")(i)?;
     let (i, name) = alpha(i)?;
     let (i, (properties, _)) = many_till(property, tag("END:"))(i)?;
@@ -89,6 +89,6 @@ pub fn component<'a>(i: &str) -> IResult<&str, Component> {
     Ok((i, Component { name, properties }))
 }
 
-pub fn components<'a>(i: &str) -> IResult<&str, Vec<Component>> {
+pub fn components(i: &str) -> IResult<&str, Vec<Component>> {
     many0(component)(i)
 }
