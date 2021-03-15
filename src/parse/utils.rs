@@ -9,6 +9,10 @@ pub fn alpha_or_space(i: &str) -> IResult<&str, &str> {
     take_while(|c: char| (c.is_whitespace() || c.is_alphabetic()))(i)
 }
 
+pub fn alpha_or_dash(i: &str) -> IResult<&str, &str> {
+    take_while(|c: char| (c == '/' || c == '_' || c == '-' || c.is_alphabetic()))(i)
+}
+
 pub fn is_alphanumeric_or_space(c: char) -> bool {
     c != '\n' && (c.is_whitespace() || c.is_alphanumeric())
 }
@@ -128,6 +132,7 @@ where
     }
     // literally a corner case
     if input.as_bytes().last() == Some(&b'\n') {
+        // TODO: cut off `'\r'` as well
         let remainder = &input[input.len() - 1..];
         let output = &input[..input.len() - 1];
         return Ok((remainder, output));
@@ -136,22 +141,16 @@ where
 }
 
 pub fn ical_lines(input: &str) -> impl Iterator<Item = &str> {
-
     let mut rest = input;
-    std::iter::from_fn(move || {
-
-        match preceded(opt(tag("\n")), ical_line)(rest) {
-            Ok((left, "")) => {
-                None
-            }
-            Ok((left, line)) => {
-                rest = left;
-                Some(line)
-            }
-            Err(e) => {
-                eprintln!("{}", e);
-                None
-            }
+    std::iter::from_fn(move || match preceded(opt(tag("\n")), ical_line)(rest) {
+        Ok((left, "")) => None,
+        Ok((left, line)) => {
+            rest = left;
+            Some(line)
+        }
+        Err(e) => {
+            eprintln!("{}", e);
+            None
         }
     })
 }
@@ -167,9 +166,12 @@ fn test_line_iterator() {
   world
 3 hello world
 4 hello world
-"#.into();
+"#
+    .into();
 
-    let lines = ical_lines(&text).map(remove_extra_breaks).collect::<Vec<_>>();
+    let lines = ical_lines(&text)
+        .map(remove_extra_breaks)
+        .collect::<Vec<_>>();
     assert_eq!(
         lines,
         vec![

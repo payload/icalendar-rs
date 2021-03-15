@@ -1,6 +1,7 @@
-
-use super::*;
-#[cfg(test)] use pretty_assertions::assert_eq;
+use super::{IcalToken, parameters::{read_parameters, Parameter}, utils, utils::alpha_or_dash};
+use nom::{IResult, bytes::complete::tag, character::complete::{line_ending, multispace0}, combinator::{map, opt}, sequence::{preceded, separated_pair, tuple}};
+#[cfg(test)]
+use pretty_assertions::assert_eq;
 
 /// Zero-copy version of `properties::Property`
 #[derive(PartialEq, Debug, Clone)]
@@ -12,7 +13,7 @@ pub struct Property<'a> {
 
 #[test]
 #[rustfmt::skip]
-fn parse_property() {
+fn test_property() {
     assert_eq!(property("KEY:VALUE\n"), Ok(("", Property{key: "KEY", val: "VALUE", params: vec![]} )));
 
     assert_eq!(
@@ -48,48 +49,41 @@ fn parse_property_with_breaks() {
     assert_eq!(property(sample_0), Ok(("", expectation)));
 }
 
-pub fn property(i: &str) -> IResult<&str, Property> {
-    let (i, _) = multispace0(i)?;
-    let (i, key) = alpha(i)?;
-    let (i, params) = parameter_list(i)?;
-    let (i, _) = tag(":")(i)?;
-
-    let (i, val) = utils::ical_line(i)?;
-
-    let (i, _) = line_ending(i)?;
-    Ok((i, Property { key, val, params }))
+fn property(input: &str) -> IResult<&str, Property> {
+    map(
+        tuple((
+            separated_pair(
+                tuple((
+                    preceded(multispace0, alpha_or_dash), // key
+                    read_parameters,                      // params
+                )),
+                tag(":"),         // separator
+                utils::ical_line, // val
+            ),
+            opt(line_ending),
+        )),
+        |(((key, params), val), _)| Property { key, val, params },
+    )(input)
 }
 
+pub fn read_property(input: &str) -> IResult<&str, IcalToken> {
+    map(property, super::IcalToken::Property)(input)
+}
 
 #[test]
-#[rustfmt::skip]
-fn parse_property_list() {
-
+fn test_read_property() {
     assert_eq!(
-        property_list("KEY;foo=bar:VALUE\nKEY;foo=bar; DATE=20170218:VALUE\n"),
-        Ok(("", vec![
-            Property{key: "KEY", val: "VALUE", params: vec![ Parameter{key:"foo", val: "bar"} ]},
-            Property{key: "KEY", val: "VALUE", params: vec![
-                Parameter{key:"foo", val: "bar"},
-                Parameter{key:"DATE", val: "20170218"},
-            ]}
-        ]))
-        );
-    assert_eq!(
-        property_list("KEY;foo=bar:VALUE\nKEY;foo=bar;DATE=20170218:VALUE\n"),
-        Ok(("", vec![
-            Property{key: "KEY", val: "VALUE", params: vec![ Parameter{key:"foo", val: "bar"} ]},
-            Property{key: "KEY", val: "VALUE", params: vec![
-                Parameter{key:"foo", val: "bar"},
-                Parameter{key:"DATE", val: "20170218"},
-            ]}
-        ]))
-        );
-    assert_eq!(
-        property_list(""),
-        Ok(("", vec![ ])));
-}
-
-pub fn property_list(i: &str) -> IResult<&str, Vec<Property>> {
-    many0(property)(i)
+        read_property("KEY;foo=bar:VALUE\n"),
+        Ok((
+            "",
+            super::IcalToken::Property(Property {
+                key: "KEY",
+                val: "VALUE",
+                params: vec![Parameter {
+                    key: "foo",
+                    val: "bar"
+                }]
+            })
+        ))
+    );
 }

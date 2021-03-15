@@ -16,29 +16,29 @@ impl<'a> Into<crate::properties::Parameter> for Parameter<'a> {
 
 #[test]
 #[rustfmt::skip]
-fn parse_parameter() {
+fn test_parameter() {
     let dbg = |x| {println!("{:?}", x); x};
     assert_eq!(
-        dbg(parameter(";KEY=VALUE")),
+        dbg(read_parameter(";KEY=VALUE")),
         Ok(("", Parameter{key: "KEY", val: "VALUE"})));
     assert_eq!(
-        dbg(parameter("; KEY=VALUE")),
+        dbg(read_parameter("; KEY=VALUE")),
         Ok(("", Parameter{key: "KEY", val: "VALUE"})));
     assert_eq!(
-        dbg(parameter("; KEY=VAL UE")),
+        dbg(read_parameter("; KEY=VAL UE")),
         Ok(("", Parameter{key: "KEY", val: "VAL UE"})));
     assert_eq!(
-        dbg(parameter("; KEY=")),
+        dbg(read_parameter("; KEY=")),
         Ok(("", Parameter{key: "KEY", val: ""})));
 }
 
 #[test]
 #[rustfmt::skip]
-fn parse_parameter_error() {
-    assert!(parameter(";KEY").is_err());
+fn test_parameter_error() {
+    assert!(read_parameter(";KEY").is_err());
 }
 
-pub fn parameter(i: &str) -> IResult<&str, Parameter> {
+fn read_parameter(i: &str) -> IResult<&str, Parameter> {
     let (i, _) = tag(";")(i)?;
     let (i, _) = space0(i)?;
     let (i, key) = alpha(i)?;
@@ -52,25 +52,25 @@ pub fn parameter(i: &str) -> IResult<&str, Parameter> {
 #[rustfmt::skip]
 pub fn parse_parameter_list() {
     assert_eq!(
-        parameter_list(";KEY=VALUE"),
+        read_parameters(";KEY=VALUE"),
         Ok( ("", vec![Parameter{key: "KEY", val: "VALUE"}])));
 
     assert_eq!(
-        parameter_list(";KEY=VALUE;DATE=TODAY"),
+        read_parameters(";KEY=VALUE;DATE=TODAY"),
         Ok( ("", vec![
             Parameter{key: "KEY", val: "VALUE"},
             Parameter{key: "DATE", val:"TODAY"}
         ])));
 
     assert_eq!(
-        parameter_list(";KEY=VALUE;DATE=20170218"),
+        read_parameters(";KEY=VALUE;DATE=20170218"),
         Ok( ("", vec![
             Parameter{key: "KEY", val: "VALUE"},
             Parameter{key: "DATE", val:"20170218"}
         ])));
 }
 
-pub fn parameter_list(i: &str) -> IResult<&str, Vec<Parameter>> {
-    many0(parameter)(i)
+pub fn read_parameters(i: &str) -> IResult<&str, Vec<Parameter>> {
+    many0(read_parameter)(i)
 }
 
