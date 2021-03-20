@@ -1,4 +1,9 @@
-use nom::preceded;
+use std::iter::{self, Enumerate};
+
+use nom::{
+    bitvec::{order::Lsb0, slice::Windows},
+    preceded,
+};
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 
@@ -142,7 +147,7 @@ where
 
 pub fn ical_lines(input: &str) -> impl Iterator<Item = &str> {
     let mut rest = input;
-    std::iter::from_fn(move || match preceded(opt(tag("\n")), ical_line)(rest) {
+    iter::from_fn(move || match preceded(opt(tag("\n")), ical_line)(rest) {
         Ok((left, "")) => None,
         Ok((left, line)) => {
             rest = left;
@@ -153,6 +158,64 @@ pub fn ical_lines(input: &str) -> impl Iterator<Item = &str> {
             None
         }
     })
+}
+
+#[derive(Debug)]
+pub struct IcalLineReader<'a> {
+    input: &'a str,
+    index: usize,
+    inner: Enumerate<std::slice::Windows<'a, u8>>,
+}
+
+impl<'a> IcalLineReader<'a> {
+    pub fn new(input: &'a str) -> Self {
+        let inner = input.as_bytes().windows(2).enumerate();
+        let index = 0;
+        Self {
+            input,
+            index,
+            inner,
+        }
+    }
+}
+
+impl<'a> iter::Iterator for IcalLineReader<'a> {
+    type Item = &'a str;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let check = |_x| true;
+        while let Some((i, window)) = self.inner.next() {
+            println!(
+                "\nnext {:?}",
+                (i, (window[0] as char, window[1] as char), self.input.len())
+            );
+
+            let output = &self.input[..i];
+            if let Some(&x) = window.get(0) {
+                if !(check(x) || (x as char).is_whitespace() || x == b'\n') {
+                    println!("check failed {:?}, ({:?})", window, output);
+                    return Some(output);
+                } else if x == b'\n' {
+                    self.index = i;
+                } else {
+                    println!("continue{:?}, ({:?})", window, output);
+                }
+            }
+            if window.get(0) == Some(&b'\n') && window.get(1) != Some(&b' ') {
+                let output = &self.input[self.index..i];
+                self.index = i;
+                println!("no space after break {:?}", (window, output, self.index));
+                return Some(output);
+            }
+        }
+        if self.input.as_bytes().last() == Some(&b'\n') {
+            // TODO: cut off `'\r'` as well
+            self.index = self.input.len() - 1;
+            let output = &self.input[..self.input.len() - 1];
+            return Some(output);
+        }
+        None
+    }
 }
 
 fn remove_extra_breaks(input: &str) -> String {
@@ -171,6 +234,31 @@ fn test_line_iterator() {
 
     let lines = ical_lines(&text)
         .map(remove_extra_breaks)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        lines,
+        vec![
+            "1 hello world",
+            "2 hello world",
+            "3 hello world",
+            "4 hello world",
+        ]
+    )
+}
+
+#[test]
+fn test_line_iterator2() {
+    let text: String = r#"1 hello world
+2 hello
+  world
+3 hello world
+4 hello world
+"#
+    .into();
+
+    let lines = IcalLineReader::new(&text)
+        .map(remove_extra_breaks)
+        .take(4)
         .collect::<Vec<_>>();
     assert_eq!(
         lines,
