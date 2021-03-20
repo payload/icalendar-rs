@@ -1,3 +1,5 @@
+use std::{env::args, fs::read_to_string};
+
 fn _read_line_by_line(sample: &str) {
     for line in icalendar::parse::read_calendar_lines(sample) {
         match line {
@@ -12,10 +14,9 @@ fn _read_line_by_line(sample: &str) {
 }
 
 fn main() {
-    let sample = include_str!("../test/example_write.ics");
-    // let sample = include_str!("../fixtures/two_time_events.ics");
-
-    dbg!(icalendar::parse::read_calendar(sample));
+    if let Some(sample) = args().nth(1).map(read_to_string) {
+        dbg!(icalendar::parse::read_calendar(&sample.unwrap()));
+    }
 
     // let parsed = parse::calendar(sample);
     // println!("{:?}", parsed);

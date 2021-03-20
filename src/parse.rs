@@ -1,6 +1,6 @@
 #![allow(missing_docs, dead_code, unused_variables, unused_imports)]
 
-use std::convert::Into;
+use std::{convert::Into, default::default, rc::Rc, sync::Mutex};
 use std::rc::Rc;
 use std::str::from_utf8;
 
@@ -16,7 +16,7 @@ use nom::{
     error::{context, convert_error, ErrorKind, ParseError, VerboseError},
     multi::{many0, many_till},
     number::complete::double,
-    sequence::{delimited, preceded, separated_pair, terminated},
+    sequence::{delimited, preceded, separated_pair, terminated, terminatedc},
     Err, IResult,
 };
 
@@ -34,7 +34,7 @@ use properties::*;
 pub mod components;
 use components::*;
 
-use self::utils::{ical_lines, IcalLineReader};
+use self::utils::{ical_lines, IcalLineReader, IcalTokenReader};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ComponentType<'a> {
@@ -54,11 +54,14 @@ pub enum IcalToken<'a> {
 
 fn read_ical_token(input: &str) -> IResult<&str, (&str, IcalToken)> {
     map(
-        alt((
-            self::components::read_begin,
-            self::components::read_end,
-            self::properties::read_property,
-        )),
+        terminated(
+            alt((
+                self::components::read_begin,
+                self::components::read_end,
+                self::properties::read_property,
+            )),
+            opt(tag("\r")),
+        ),
         |token| (input, token),
     )(input)
 }
@@ -69,13 +72,35 @@ pub fn read_calendar_lines<'a>(
     ical_lines(&input).map(read_ical_token)
 }
 
-fn read_components<'a>(ctx: &mut Context<'a>) -> Vec<Component<'a>> {
-    if let Some(token) = ctx.line_source.next() {
-        println!("{:?}", token);
-        todo!()
-    } else {
-        panic!("It's over!")
+fn read_components<'a>(ctx: &mut Context<'a>) -> Option<Vec<Component<'a>>> {
+    match (ctx.current_component.as_ref(), ctx.line_source.next()) {
+        (None, None) => None,
+
+        // 
+        (None, Some(Ok((_, (_, IcalToken::Begin(r#type)))))) => {
+            let new_component = Component {
+                r#type,
+                properties: Default::default(),
+                components: Default::default(),
+            };
+            // open new component
+            None
+        },
+        (Some(current_component), Some(Ok((_, (_, IcalToken::End(name)))))) =>{
+            // closing current component
+            None
+        },
+
+        (None, Some(_)) => None,
+        (Some(_), None) => None,
+        (Some(_), Some(_)) => None,
     }
+    // if let Some(parsed) = ctx.line_source.next() {
+    //     if let Ok((_left_over, (_input, token))) = parsed  {
+    //     }
+    // } else {
+    //     panic!("It's over!")
+    // }
 }
 
 #[derive(Debug)]
@@ -92,20 +117,26 @@ pub struct Calendar<'a> {
 
 #[derive(Debug)]
 struct Context<'a> {
-    current_cal: Option<Calendar<'a>>,
     current_component: Option<Component<'a>>,
-    higher_component: Option<Component<'a>>,
-    calendars: Vec<Calendar<'a>>,
-    line_source: IcalLineReader<'a>,
+    // line_source: IcalLineReader<'a>,
+    line_source: Rc<Mutex<IcalTokenReader<'a>>>,
 }
 
-pub fn read_calendar<'a>(input: &'a str) -> Vec<Component<'a>> {
+impl<'a> Context<'a> {
+    fn fork(&self) -> Self {
+        Context {
+            current_component: None,
+            line_source: self.line_source.clone(),
+        }
+    }
+}
+
+
+pub fn read_calendar<'a>(input: &'a str) -> Option<Vec<Component<'a>>> {
     let mut context = Context {
-        current_cal: None,
         current_component: None,
-        higher_component: None,
-        calendars: Default::default(),
-        line_source: IcalLineReader::new(input),
+        line_source: Rc::new(Mutex::new(IcalLineReader::new(input).map(read_ical_token))),
     };
     read_components(&mut context)
+    let IcalLineReader::new(input).map(read_ical_token).reduce();
 }

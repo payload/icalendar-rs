@@ -1,4 +1,4 @@
-use std::iter::{self, Enumerate};
+use std::iter::{self, Enumerate, Map};
 
 use nom::{
     bitvec::{order::Lsb0, slice::Windows},
@@ -164,6 +164,7 @@ pub fn ical_lines(input: &str) -> impl Iterator<Item = &str> {
 pub struct IcalLineReader<'a> {
     input: &'a str,
     line_start: usize,
+    done: bool,
     inner: Enumerate<std::slice::Windows<'a, u8>>,
 }
 
@@ -175,6 +176,7 @@ impl<'a> IcalLineReader<'a> {
             input,
             line_start: index,
             inner,
+            done: false,
         }
     }
 }
@@ -200,22 +202,26 @@ impl<'a> iter::Iterator for IcalLineReader<'a> {
                     self.line_start = end;
                     return Some(output);
                 } else {
-                    unreachable!("no next non-break character")
+                    unreachable!("no next non-break character (1)")
                 }
             }
         }
-        if self.input.as_bytes().last() == Some(&b'\n') {
+        if !self.done && self.input.as_bytes().last() == Some(&b'\n') {
+            let end = self.input.len() - 1;
+            self.done = true;
             if let Some(non_break_char) = &self.next_non_break_after_index(self.line_start) {
-                let end = self.input.len() - 1;
                 let output = &self.input[*non_break_char..end];
                 return Some(output);
             } else {
-                unreachable!("no next non-break character")
+                return None;
             }
         }
         None
     }
 }
+
+pub type IcalTokenReader<'a> =
+    Map<IcalLineReader<'a>, fn(&str) -> IResult<&str, (&str, IcalToken)>>;
 
 fn remove_extra_breaks(input: &str) -> String {
     input.replace("\n ", "")
@@ -257,7 +263,6 @@ fn test_line_iterator2() {
 
     let lines = IcalLineReader::new(&text)
         .map(remove_extra_breaks)
-        .take(4)
         .collect::<Vec<_>>();
     assert_eq!(
         lines,
