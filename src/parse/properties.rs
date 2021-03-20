@@ -49,7 +49,7 @@ fn parse_property_with_breaks() {
     assert_eq!(property(sample_0), Ok(("", expectation)));
 }
 
-fn property(input: &str) -> IResult<&str, Property> {
+pub fn property(input: &str) -> IResult<&str, Property> {
     map(
         tuple((
             separated_pair(
