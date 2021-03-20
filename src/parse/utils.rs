@@ -163,7 +163,7 @@ pub fn ical_lines(input: &str) -> impl Iterator<Item = &str> {
 #[derive(Debug)]
 pub struct IcalLineReader<'a> {
     input: &'a str,
-    index: usize,
+    line_start: usize,
     inner: Enumerate<std::slice::Windows<'a, u8>>,
 }
 
@@ -173,9 +173,19 @@ impl<'a> IcalLineReader<'a> {
         let index = 0;
         Self {
             input,
-            index,
+            line_start: index,
             inner,
         }
+    }
+}
+
+impl<'a> IcalLineReader<'a> {
+    fn next_non_break_after_index(&self, index: usize) -> Option<usize> {
+        self.input
+            .chars()
+            .skip(self.line_start)
+            .position(|x| x != '\r' && x != '\n')
+            .map(|pos| pos + self.line_start)
     }
 }
 
@@ -183,36 +193,25 @@ impl<'a> iter::Iterator for IcalLineReader<'a> {
     type Item = &'a str;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let check = |_x| true;
-        while let Some((i, window)) = self.inner.next() {
-            println!(
-                "\nnext {:?}",
-                (i, (window[0] as char, window[1] as char), self.input.len())
-            );
-
-            let output = &self.input[..i];
-            if let Some(&x) = window.get(0) {
-                if !(check(x) || (x as char).is_whitespace() || x == b'\n') {
-                    println!("check failed {:?}, ({:?})", window, output);
-                    return Some(output);
-                } else if x == b'\n' {
-                    self.index = i;
-                } else {
-                    println!("continue{:?}, ({:?})", window, output);
-                }
-            }
+        while let Some((end, window)) = self.inner.next() {
             if window.get(0) == Some(&b'\n') && window.get(1) != Some(&b' ') {
-                let output = &self.input[self.index..i];
-                self.index = i;
-                println!("no space after break {:?}", (window, output, self.index));
-                return Some(output);
+                if let Some(non_break_char) = &self.next_non_break_after_index(self.line_start) {
+                    let output = &self.input[*non_break_char..end];
+                    self.line_start = end;
+                    return Some(output);
+                } else {
+                    unreachable!("no next non-break character")
+                }
             }
         }
         if self.input.as_bytes().last() == Some(&b'\n') {
-            // TODO: cut off `'\r'` as well
-            self.index = self.input.len() - 1;
-            let output = &self.input[..self.input.len() - 1];
-            return Some(output);
+            if let Some(non_break_char) = &self.next_non_break_after_index(self.line_start) {
+                let end = self.input.len() - 1;
+                let output = &self.input[*non_break_char..end];
+                return Some(output);
+            } else {
+                unreachable!("no next non-break character")
+            }
         }
         None
     }
