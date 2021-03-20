@@ -1,5 +1,6 @@
 use super::*;
-#[cfg(test)] use pretty_assertions::assert_eq;
+#[cfg(test)]
+use pretty_assertions::assert_eq;
 
 /// Zero-copy version of `properties::Parameter`
 #[derive(PartialEq, Debug, Clone)]
@@ -30,6 +31,9 @@ fn test_parameter() {
     assert_eq!(
         dbg(read_parameter("; KEY=")),
         Ok(("", Parameter{key: "KEY", val: ""})));
+    assert_eq!(
+        dbg(read_parameter(";KEY=VAL-UE")),
+        Ok(("", Parameter{key: "KEY", val: "VAL-UE"})));
 }
 
 #[test]
@@ -43,7 +47,7 @@ fn read_parameter(i: &str) -> IResult<&str, Parameter> {
     let (i, _) = space0(i)?;
     let (i, key) = alpha(i)?;
     let (i, _) = tag("=")(i)?;
-    let (i, val) = utils::ical_line_alphanumeric(i)?;
+    let (i, val) = utils::ical_line_check(i, |x| x != b';' && x != b':')?;
     Ok((i, Parameter { key, val }))
 }
 
@@ -73,4 +77,3 @@ pub fn parse_parameter_list() {
 pub fn read_parameters(i: &str) -> IResult<&str, Vec<Parameter>> {
     many0(read_parameter)(i)
 }
-

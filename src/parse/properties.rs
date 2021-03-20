@@ -1,5 +1,5 @@
 use super::{IcalToken, parameters::{read_parameters, Parameter}, utils, utils::alpha_or_dash};
-use nom::{IResult, bytes::complete::tag, character::complete::{line_ending, multispace0}, combinator::{map, opt}, sequence::{preceded, separated_pair, tuple}};
+use nom::{IResult, bytes::complete::tag, character::complete::{line_ending, multispace0}, combinator::{map, opt}, error::context, sequence::{preceded, separated_pair, tuple}};
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 
@@ -57,7 +57,7 @@ fn property(input: &str) -> IResult<&str, Property> {
                     preceded(multispace0, alpha_or_dash), // key
                     read_parameters,                      // params
                 )),
-                tag(":"),         // separator
+                context("fun", tag(":")),         // separator
                 utils::ical_line, // val
             ),
             opt(line_ending),
